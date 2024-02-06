@@ -1,19 +1,21 @@
+# -*- coding: utf-8 -*-
 from enum import IntEnum
 import uuid
 import baseconv
 
 from core.singleton import Singleton
-from core.botDatabase import Database
-from core.botException import BotUnexpected
-from core.botLogger import log_main
+from core.database import Database
+from core.exception import BotUnexpected
+from core.logger import log_main
 
 STREAMS_TABLE = 'streams'
 
 
 
 class StreamStatus(IntEnum):
-    stopped = 0
-    active = 1
+    '''Stream statuses'''
+    STOPPED = 0
+    ACTIVE = 1
 
 
 
@@ -34,14 +36,14 @@ class Streams(metaclass=Singleton):
         super().__init__()
         self.__streams = {}
 
-        def loadStreamsSQL():
+        def load_streams_sql():
             '''Get all existing streams from database'''
-            with Database().getConnection().cursor() as cursor:
+            with Database().get_connection().cursor() as cursor:
                 sql = "SELECT * FROM " + STREAMS_TABLE
                 cursor.execute(sql)
                 return cursor.fetchall()
 
-        res = Database().execute(loadStreamsSQL)
+        res = Database().execute(load_streams_sql)
         if res['status'] is False:
             log_main.error("Failed to load streams")
             raise BotUnexpected
@@ -64,7 +66,7 @@ class Streams(metaclass=Singleton):
             return None
 
 
-    def getAll(self, user_id):
+    def get_all(self, user_id):
         '''Get a list of all streams for a given telegram user
             Args:
                 user_id(str):   Telegram user ID (chat ID)
@@ -89,8 +91,8 @@ class Streams(metaclass=Singleton):
         # Generate a unique stream key
         alphabet = "0123456789ABCDEFGHIJKLMNPQRSTUVWXYZ"
         converter = baseconv.BaseConverter(alphabet)
-        codeLength = 32
-        secret = converter.encode(uuid.uuid4().int)[0:codeLength]
+        code_length = 32
+        secret = converter.encode(uuid.uuid4().int)[0:code_length]
 
         # Check the uniqueness
         if secret in self.__streams:
@@ -98,16 +100,17 @@ class Streams(metaclass=Singleton):
             return None
 
         # Add stream
-        stream_status = int(StreamStatus.active)
-        def addStreamSQL():
+        stream_status = int(StreamStatus.ACTIVE)
+        def add_stream_sql():
             '''Get all existing streams from database'''
-            with Database().getConnection().cursor() as cursor:
-                sql = "INSERT INTO " + STREAMS_TABLE + " (user_id, secret, name, status) VALUES (%s, %s, %s, %s)"
+            with Database().get_connection().cursor() as cursor:
+                sql = "INSERT INTO " + STREAMS_TABLE +\
+                      " (user_id, secret, name, status) VALUES (%s, %s, %s, %s)"
                 cursor.execute(sql, (user_id, secret, name, stream_status))
-                Database().getConnection().commit()
-                return Database().getConnection().insert_id()
+                Database().get_connection().commit()
+                return Database().get_connection().insert_id()
 
-        res = Database().execute(addStreamSQL)
+        res = Database().execute(add_stream_sql)
         if res['status'] is False:
             log_main.error("Error when adding a new stream")
             return None
@@ -117,11 +120,12 @@ class Streams(metaclass=Singleton):
         if stream_id is not None:
             stream = Stream(stream_id, user_id, secret, name, stream_status)
             self.__streams[secret] = stream
-            log_main.info('Added new stream "%s" for user %s with the key: %s', name, user_id, secret)
+            log_main.info('Added new stream "%s" for user %s with the key: %s',
+                          name, user_id, secret)
             return secret
 
         # If it was not added
-        raise Exception("Couldn't add new stream")
+        raise BotUnexpected("Couldn't add new stream")
 
 
     def delete(self, secret):
@@ -132,14 +136,14 @@ class Streams(metaclass=Singleton):
                 bool:           Operation result
         '''
         # Удаляем поток даже если в кэше не было
-        def deleteStreamSQL():
-            with Database().getConnection().cursor() as cursor:
+        def delete_stream_sql():
+            with Database().get_connection().cursor() as cursor:
                 sql = "DELETE FROM "+STREAMS_TABLE+" WHERE secret=%s"
                 cursor.execute(sql, (secret,))
-                Database().getConnection().commit()
+                Database().get_connection().commit()
                 return cursor.rowcount > 0
 
-        res = Database().execute(deleteStreamSQL)
+        res = Database().execute(delete_stream_sql)
         if res['status'] is False:
             log_main.error("Error deleting a stream")
             return None
@@ -157,7 +161,7 @@ class Streams(metaclass=Singleton):
         return True
 
 
-    def setStatus(self, stream, status):
+    def set_status(self, stream, status):
         '''Set the status of a given stream
             Args:
                 key(str):       Stream key (secret)
@@ -170,16 +174,16 @@ class Streams(metaclass=Singleton):
             return True # The status has not changed
 
         if stream.secret not in self.__streams:
-            log_main.error("Attempt to change the status of a stream that is not in the cache. Key: %s", stream.secret)
+            log_main.error("Attempt to change the status of the stream that is not in the cache. Key: %s", stream.secret)
             return False # Uncached stream
 
-        def updateStreamStatusSQL():
-            with Database().getConnection().cursor() as cursor:
+        def update_stream_status_sql():
+            with Database().get_connection().cursor() as cursor:
                 sql = "UPDATE "+STREAMS_TABLE+" SET status=%s WHERE secret=%s"
                 cursor.execute(sql, (status, stream.secret))
-                Database().getConnection().commit()
+                Database().get_connection().commit()
 
-        res = Database().execute(updateStreamStatusSQL)
+        res = Database().execute(update_stream_status_sql)
         if res['status'] is False:
             log_main.error("Error when changing the stream status")
             return False

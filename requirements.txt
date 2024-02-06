@@ -6,10 +6,9 @@ idna==2.10
 itsdangerous==1.1.0
 Jinja2==2.11.3
 MarkupSafe==1.1.1
-mysqlclient==2.0.1
+mysqlclient==2.0.3
 pyTelegramBotAPI==3.7.6
 python-baseconv==1.2.2
 requests==2.25.1
-six==1.15.0
 urllib3==1.26.3
 Werkzeug==1.0.1

@@ -39,4 +39,4 @@ The first thing you should prepare environment and install all requirenments (re
 * REPORTME_DB_PASSWORD — Database user password
 * REPORTME_DB_DATABASE — Database
 * REPORTME_BOT_TOKEN — Token for telegram bot received from [@BotFather](tg://resolve?domain=BotFather)
-* REPORTME_WEBHOOK_PATH — (optional) Set if you want to process requests on the sublevel URL (e.g. "/qwe" lead to URLs like `https://your-site.com/qwe/...`)
+* REPORTME_WEBHOOK_PATH — (optional) Set if you want to process requests on the sublevel URL (e.g. "/qwe/" lead to URLs like `https://your-site.com/qwe/...`). The path must start and end with the '/'
